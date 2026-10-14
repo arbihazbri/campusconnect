@@ -1,0 +1,46 @@
+# ===== Secrets et configuration locale =====
+.env
+.env.*
+!.env.example
+application-local.properties
+application-local.yml
+*.pem
+*.key
+
+# ===== Java / Maven / Gradle =====
+target/
+build/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+*.class
+*.jar
+*.war
+hs_err_pid*
+
+# ===== IntelliJ IDEA =====
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# ===== VS Code =====
+.vscode/
+
+# ===== Node.js / Next.js =====
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+coverage/
+npm-debug.log*
+
+# ===== Logs et fichiers temporaires =====
+*.log
+logs/
+*.tmp
+
+# ===== Système =====
+.DS_Store
+Thumbs.db
+desktop.ini
