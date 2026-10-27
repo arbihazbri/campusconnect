@@ -38,7 +38,7 @@ public class AuthService {
     }
 
     @Transactional
-    public User register(RegisterRequest request) {
+    public UserResponse register(RegisterRequest request) {
         String email = normalize(request.email());
 
         if (userRepository.existsByEmail(email)) {
@@ -51,13 +51,16 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setRole(Role.STUDENT);
 
+        User saved;
         try {
-            return userRepository.saveAndFlush(user);
+            saved = userRepository.saveAndFlush(user);
         } catch (DataIntegrityViolationException e) {
             throw new EmailAlreadyUsedException();
         }
+        return UserResponse.from(saved);
     }
 
+    @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
         String email = normalize(request.email());
         User user = userRepository.findByEmail(email).orElse(null);
