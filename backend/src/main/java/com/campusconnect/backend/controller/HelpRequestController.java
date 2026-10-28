@@ -8,11 +8,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.campusconnect.backend.dto.HelpRequestInput;
 import com.campusconnect.backend.dto.HelpRequestResponse;
+import com.campusconnect.backend.dto.PageResponse;
+import com.campusconnect.backend.entity.Level;
+import com.campusconnect.backend.entity.RequestStatus;
 import com.campusconnect.backend.service.HelpRequestService;
 
 import jakarta.validation.Valid;
@@ -35,10 +39,21 @@ public class HelpRequestController {
         return helpRequestService.create(currentUserId(jwt), input);
     }
 
+    @GetMapping
+    public PageResponse<HelpRequestResponse> list(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(name = "subjectId", required = false) Long subjectId,
+            @RequestParam(name = "level", required = false) Level level,
+            @RequestParam(name = "status", required = false) RequestStatus status,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size) {
+        return helpRequestService.search(subjectId, level, status, page, size, currentUserId(jwt));
+    }
+
     @GetMapping("/{id}")
     public HelpRequestResponse getById(
             @AuthenticationPrincipal Jwt jwt,
-            @PathVariable Long id) {
+            @PathVariable("id") Long id) {
         return helpRequestService.getById(id, currentUserId(jwt));
     }
 

@@ -1,11 +1,18 @@
 package com.campusconnect.backend.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.campusconnect.backend.dto.HelpRequestInput;
 import com.campusconnect.backend.dto.HelpRequestResponse;
+import com.campusconnect.backend.dto.PageResponse;
 import com.campusconnect.backend.entity.HelpRequest;
+import com.campusconnect.backend.entity.Level;
+import com.campusconnect.backend.entity.RequestStatus;
 import com.campusconnect.backend.entity.Subject;
 import com.campusconnect.backend.entity.User;
 import com.campusconnect.backend.exception.BusinessValidationException;
@@ -16,6 +23,8 @@ import com.campusconnect.backend.repository.UserRepository;
 
 @Service
 public class HelpRequestService {
+
+    private static final int MAX_PAGE_SIZE = 50;
 
     private final HelpRequestRepository helpRequestRepository;
     private final UserRepository userRepository;
@@ -55,5 +64,25 @@ public class HelpRequestService {
                 .filter(found -> !found.isHidden())
                 .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable"));
         return HelpRequestResponse.from(request, currentUserId);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResponse<HelpRequestResponse> search(
+            Long subjectId,
+            Level level,
+            RequestStatus status,
+            int page,
+            int size,
+            Long currentUserId) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        Sort newestFirst = Sort.by(Sort.Direction.DESC, "createdAt")
+                .and(Sort.by(Sort.Direction.DESC, "id"));
+        Pageable pageable = PageRequest.of(safePage, safeSize, newestFirst);
+
+        Page<HelpRequestResponse> result = helpRequestRepository
+                .search(subjectId, level, status, pageable)
+                .map(request -> HelpRequestResponse.from(request, currentUserId));
+        return PageResponse.from(result);
     }
 }
