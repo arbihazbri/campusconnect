@@ -16,7 +16,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.campusconnect.backend.entity.HelpRequest;
+import com.campusconnect.backend.entity.Role;
+import com.campusconnect.backend.entity.User;
+import com.campusconnect.backend.repository.HelpOfferRepository;
 import com.campusconnect.backend.repository.HelpRequestRepository;
 import com.campusconnect.backend.repository.UserRepository;
 
@@ -39,6 +44,12 @@ public abstract class AbstractApiTest {
     @Autowired
     protected HelpRequestRepository helpRequestRepository;
 
+    @Autowired
+    protected HelpOfferRepository helpOfferRepository;
+
+    @Autowired
+    protected PasswordEncoder passwordEncoder;
+
     private final HttpClient client = HttpClient.newHttpClient();
     private final List<String> createdEmails = new ArrayList<>();
 
@@ -46,7 +57,12 @@ public abstract class AbstractApiTest {
     void cleanUpCreatedData() {
         for (String email : createdEmails) {
             userRepository.findByEmail(email).ifPresent(user -> {
-                helpRequestRepository.deleteAll(helpRequestRepository.findByAuthorId(user.getId()));
+                helpOfferRepository.deleteAll(helpOfferRepository.findByHelperId(user.getId()));
+                List<HelpRequest> requests = helpRequestRepository.findByAuthorId(user.getId());
+                for (HelpRequest request : requests) {
+                    helpOfferRepository.deleteAll(helpOfferRepository.findByRequestId(request.getId()));
+                }
+                helpRequestRepository.deleteAll(requests);
                 userRepository.delete(user);
             });
         }
@@ -69,13 +85,33 @@ public abstract class AbstractApiTest {
 
     /** Crée un étudiant, le connecte et renvoie son jeton. */
     protected String registerAndLogin() throws Exception {
-        String email = "test." + UUID.randomUUID() + "@campusconnect.local";
-        createdEmails.add(email);
+        String email = newEmail();
 
         HttpResponse<String> registration = send("POST", "/api/auth/register", null,
                 "{\"email\":\"" + email + "\",\"password\":\"MotDePasse123\",\"fullName\":\"Etudiant Test\"}");
         assertThat(registration.statusCode()).isEqualTo(201);
+        return login(email);
+    }
 
+    /** Crée un administrateur directement en base, le connecte et renvoie son jeton. */
+    protected String adminLogin() throws Exception {
+        String email = newEmail();
+        User admin = new User();
+        admin.setEmail(email);
+        admin.setFullName("Admin Test");
+        admin.setPasswordHash(passwordEncoder.encode("MotDePasse123"));
+        admin.setRole(Role.ADMIN);
+        userRepository.save(admin);
+        return login(email);
+    }
+
+    private String newEmail() {
+        String email = "test." + UUID.randomUUID() + "@campusconnect.local";
+        createdEmails.add(email);
+        return email;
+    }
+
+    private String login(String email) throws Exception {
         HttpResponse<String> login = send("POST", "/api/auth/login", null,
                 "{\"email\":\"" + email + "\",\"password\":\"MotDePasse123\"}");
         assertThat(login.statusCode()).isEqualTo(200);

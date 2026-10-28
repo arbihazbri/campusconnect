@@ -35,6 +35,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**", "/api/health").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/requests").hasRole("STUDENT")
+                        .requestMatchers(HttpMethod.POST, "/api/requests/*/offers").hasRole("STUDENT")
                         .anyRequest().authenticated())
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint(ENTRY_POINT)
