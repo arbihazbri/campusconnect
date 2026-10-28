@@ -57,12 +57,17 @@ public class HelpRequestService {
 
     @Transactional(readOnly = true)
     public HelpRequestResponse getById(Long requestId, Long currentUserId) {
-        return HelpRequestResponse.from(findVisible(requestId), currentUserId);
+        HelpRequest request = helpRequestRepository.findWithDetailsById(requestId)
+                .filter(found -> !found.isHidden())
+                .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable"));
+        return HelpRequestResponse.from(request, currentUserId);
     }
 
     @Transactional
     public HelpRequestResponse update(Long requestId, Long currentUserId, HelpRequestInput input) {
-        HelpRequest request = findVisible(requestId);
+        HelpRequest request = helpRequestRepository.findByIdForUpdate(requestId)
+                .filter(found -> !found.isHidden())
+                .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable"));
 
         if (!request.getAuthor().getId().equals(currentUserId)) {
             throw new ForbiddenOperationException("Seul l'auteur peut modifier cette demande");
@@ -93,12 +98,6 @@ public class HelpRequestService {
                 .search(subjectId, level, status, pageable)
                 .map(request -> HelpRequestResponse.from(request, currentUserId));
         return PageResponse.from(result);
-    }
-
-    private HelpRequest findVisible(Long requestId) {
-        return helpRequestRepository.findWithDetailsById(requestId)
-                .filter(found -> !found.isHidden())
-                .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable"));
     }
 
     private Subject findSubject(Long subjectId) {

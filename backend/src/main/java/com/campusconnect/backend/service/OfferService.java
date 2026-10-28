@@ -10,6 +10,7 @@ import com.campusconnect.backend.dto.OfferInput;
 import com.campusconnect.backend.dto.OfferResponse;
 import com.campusconnect.backend.entity.HelpOffer;
 import com.campusconnect.backend.entity.HelpRequest;
+import com.campusconnect.backend.entity.OfferStatus;
 import com.campusconnect.backend.entity.RequestStatus;
 import com.campusconnect.backend.entity.User;
 import com.campusconnect.backend.exception.ConflictException;
@@ -37,7 +38,10 @@ public class OfferService {
 
     @Transactional
     public OfferResponse create(Long requestId, Long helperId, OfferInput input) {
-        HelpRequest request = findVisibleRequest(requestId);
+        // Demande verrouillée : une proposition ne peut pas s'insérer au milieu d'une acceptation
+        HelpRequest request = helpRequestRepository.findByIdForUpdate(requestId)
+                .filter(found -> !found.isHidden())
+                .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable"));
 
         if (request.getAuthor().getId().equals(helperId)) {
             throw new ForbiddenOperationException(
@@ -69,7 +73,9 @@ public class OfferService {
 
     @Transactional(readOnly = true)
     public List<OfferResponse> listForRequest(Long requestId, Long currentUserId) {
-        HelpRequest request = findVisibleRequest(requestId);
+        HelpRequest request = helpRequestRepository.findWithDetailsById(requestId)
+                .filter(found -> !found.isHidden())
+                .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable"));
 
         if (!request.getAuthor().getId().equals(currentUserId)) {
             throw new ForbiddenOperationException("Seul l'auteur peut consulter les propositions");
@@ -80,9 +86,67 @@ public class OfferService {
                 .toList();
     }
 
-    private HelpRequest findVisibleRequest(Long requestId) {
-        return helpRequestRepository.findWithDetailsById(requestId)
+    @Transactional
+    public OfferResponse accept(Long offerId, Long currentUserId) {
+        HelpRequest request = lockRequestOfOffer(offerId);
+        requireAuthor(request, currentUserId,
+                "Seul l'auteur de la demande peut accepter une proposition");
+        requireOpen(request);
+        HelpOffer offer = loadPendingOffer(offerId);
+
+        offer.setStatus(OfferStatus.ACCEPTEE);
+        request.setStatus(RequestStatus.AIDE_ACCEPTEE);
+
+        for (HelpOffer other : helpOfferRepository.findByRequestId(request.getId())) {
+            if (!other.getId().equals(offerId) && other.getStatus() == OfferStatus.EN_ATTENTE) {
+                other.setStatus(OfferStatus.REFUSEE);
+            }
+        }
+        return OfferResponse.from(offer);
+    }
+
+    @Transactional
+    public OfferResponse reject(Long offerId, Long currentUserId) {
+        HelpRequest request = lockRequestOfOffer(offerId);
+        requireAuthor(request, currentUserId,
+                "Seul l'auteur de la demande peut refuser une proposition");
+        requireOpen(request);
+        HelpOffer offer = loadPendingOffer(offerId);
+
+        offer.setStatus(OfferStatus.REFUSEE);
+        return OfferResponse.from(offer);
+    }
+
+    /**
+     * Trouve la demande d'une proposition et la verrouille. On ne charge volontairement pas la proposition
+     * avant le verrou, pour ne pas lire un état périmé.
+     */
+    private HelpRequest lockRequestOfOffer(Long offerId) {
+        Long requestId = helpOfferRepository.findRequestIdById(offerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Proposition introuvable"));
+        return helpRequestRepository.findByIdForUpdate(requestId)
                 .filter(found -> !found.isHidden())
-                .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Proposition introuvable"));
+    }
+
+    private void requireAuthor(HelpRequest request, Long userId, String message) {
+        if (!request.getAuthor().getId().equals(userId)) {
+            throw new ForbiddenOperationException(message);
+        }
+    }
+
+    private void requireOpen(HelpRequest request) {
+        if (request.getStatus() != RequestStatus.OUVERTE) {
+            throw new ConflictException("Cette demande n'est plus ouverte");
+        }
+    }
+
+    private HelpOffer loadPendingOffer(Long offerId) {
+        HelpOffer offer = helpOfferRepository.findById(offerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Proposition introuvable"));
+        if (offer.getStatus() != OfferStatus.EN_ATTENTE) {
+            throw new ConflictException("Cette proposition a déjà été traitée");
+        }
+        return offer;
     }
 }

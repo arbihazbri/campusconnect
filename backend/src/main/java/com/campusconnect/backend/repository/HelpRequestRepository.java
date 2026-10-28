@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -14,10 +15,19 @@ import com.campusconnect.backend.entity.HelpRequest;
 import com.campusconnect.backend.entity.Level;
 import com.campusconnect.backend.entity.RequestStatus;
 
+import jakarta.persistence.LockModeType;
+
 public interface HelpRequestRepository extends JpaRepository<HelpRequest, Long> {
 
     @EntityGraph(attributePaths = { "author", "subject" })
     Optional<HelpRequest> findWithDetailsById(Long id);
+
+    /**
+     * Charge la demande en la verrouillant (SELECT ... FOR UPDATE) jusqu'à la fin de la transaction.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from HelpRequest r where r.id = :id")
+    Optional<HelpRequest> findByIdForUpdate(@Param("id") Long id);
 
     List<HelpRequest> findByAuthorId(Long authorId);
 
