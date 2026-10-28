@@ -16,6 +16,8 @@ import com.campusconnect.backend.entity.RequestStatus;
 import com.campusconnect.backend.entity.Subject;
 import com.campusconnect.backend.entity.User;
 import com.campusconnect.backend.exception.BusinessValidationException;
+import com.campusconnect.backend.exception.ConflictException;
+import com.campusconnect.backend.exception.ForbiddenOperationException;
 import com.campusconnect.backend.exception.ResourceNotFoundException;
 import com.campusconnect.backend.repository.HelpRequestRepository;
 import com.campusconnect.backend.repository.SubjectRepository;
@@ -43,16 +45,11 @@ public class HelpRequestService {
     public HelpRequestResponse create(Long authorId, HelpRequestInput input) {
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable"));
-        Subject subject = subjectRepository.findById(input.subjectId())
-                .orElseThrow(() -> new BusinessValidationException("subjectId", "Matière inconnue"));
+        Subject subject = findSubject(input.subjectId());
 
         HelpRequest request = new HelpRequest();
-        request.setTitle(input.title().trim());
-        request.setDescription(input.description().trim());
-        request.setAvailability(input.availability().trim());
-        request.setLevel(input.level());
+        applyInput(request, input, subject);
         request.setAuthor(author);
-        request.setSubject(subject);
 
         helpRequestRepository.save(request);
         return HelpRequestResponse.from(request, authorId);
@@ -60,9 +57,21 @@ public class HelpRequestService {
 
     @Transactional(readOnly = true)
     public HelpRequestResponse getById(Long requestId, Long currentUserId) {
-        HelpRequest request = helpRequestRepository.findWithDetailsById(requestId)
-                .filter(found -> !found.isHidden())
-                .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable"));
+        return HelpRequestResponse.from(findVisible(requestId), currentUserId);
+    }
+
+    @Transactional
+    public HelpRequestResponse update(Long requestId, Long currentUserId, HelpRequestInput input) {
+        HelpRequest request = findVisible(requestId);
+
+        if (!request.getAuthor().getId().equals(currentUserId)) {
+            throw new ForbiddenOperationException("Seul l'auteur peut modifier cette demande");
+        }
+        if (request.getStatus() != RequestStatus.OUVERTE) {
+            throw new ConflictException("Seule une demande ouverte peut être modifiée");
+        }
+
+        applyInput(request, input, findSubject(input.subjectId()));
         return HelpRequestResponse.from(request, currentUserId);
     }
 
@@ -84,5 +93,24 @@ public class HelpRequestService {
                 .search(subjectId, level, status, pageable)
                 .map(request -> HelpRequestResponse.from(request, currentUserId));
         return PageResponse.from(result);
+    }
+
+    private HelpRequest findVisible(Long requestId) {
+        return helpRequestRepository.findWithDetailsById(requestId)
+                .filter(found -> !found.isHidden())
+                .orElseThrow(() -> new ResourceNotFoundException("Demande introuvable"));
+    }
+
+    private Subject findSubject(Long subjectId) {
+        return subjectRepository.findById(subjectId)
+                .orElseThrow(() -> new BusinessValidationException("subjectId", "Matière inconnue"));
+    }
+
+    private void applyInput(HelpRequest request, HelpRequestInput input, Subject subject) {
+        request.setTitle(input.title().trim());
+        request.setDescription(input.description().trim());
+        request.setAvailability(input.availability().trim());
+        request.setLevel(input.level());
+        request.setSubject(subject);
     }
 }

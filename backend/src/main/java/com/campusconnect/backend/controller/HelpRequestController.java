@@ -6,6 +6,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -55,6 +56,14 @@ public class HelpRequestController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable("id") Long id) {
         return helpRequestService.getById(id, currentUserId(jwt));
+    }
+
+    @PutMapping("/{id}")
+    public HelpRequestResponse update(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable("id") Long id,
+            @Valid @RequestBody HelpRequestInput input) {
+        return helpRequestService.update(id, currentUserId(jwt), input);
     }
 
     private Long currentUserId(Jwt jwt) {
