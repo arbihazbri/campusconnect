@@ -31,6 +31,10 @@ public interface HelpRequestRepository extends JpaRepository<HelpRequest, Long> 
 
     List<HelpRequest> findByAuthorId(Long authorId);
 
+    /** Demandes publiées par l'auteur (masquées comprises), les plus récentes d'abord. */
+    @EntityGraph(attributePaths = { "subject" })
+    List<HelpRequest> findByAuthorIdOrderByCreatedAtDescIdDesc(Long authorId);
+
     @EntityGraph(attributePaths = { "author", "subject" })
     @Query("""
             select r from HelpRequest r
@@ -44,4 +48,4 @@ public interface HelpRequestRepository extends JpaRepository<HelpRequest, Long> 
             @Param("level") Level level,
             @Param("status") RequestStatus status,
             Pageable pageable);
-}
+}
