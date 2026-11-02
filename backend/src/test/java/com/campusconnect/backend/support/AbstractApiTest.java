@@ -23,6 +23,8 @@ import com.campusconnect.backend.entity.Role;
 import com.campusconnect.backend.entity.User;
 import com.campusconnect.backend.repository.HelpOfferRepository;
 import com.campusconnect.backend.repository.HelpRequestRepository;
+import com.campusconnect.backend.repository.RatingRepository;
+import com.campusconnect.backend.repository.ReportRepository;
 import com.campusconnect.backend.repository.UserRepository;
 
 /**
@@ -48,6 +50,12 @@ public abstract class AbstractApiTest {
     protected HelpOfferRepository helpOfferRepository;
 
     @Autowired
+    protected RatingRepository ratingRepository;
+
+    @Autowired
+    protected ReportRepository reportRepository;
+
+    @Autowired
     protected PasswordEncoder passwordEncoder;
 
     private final HttpClient client = HttpClient.newHttpClient();
@@ -57,9 +65,13 @@ public abstract class AbstractApiTest {
     void cleanUpCreatedData() {
         for (String email : createdEmails) {
             userRepository.findByEmail(email).ifPresent(user -> {
+                ratingRepository.deleteAll(ratingRepository.findByRaterIdOrRatedId(user.getId(), user.getId()));
+                reportRepository.deleteAll(reportRepository.findByReporterId(user.getId()));
                 helpOfferRepository.deleteAll(helpOfferRepository.findByHelperId(user.getId()));
                 List<HelpRequest> requests = helpRequestRepository.findByAuthorId(user.getId());
                 for (HelpRequest request : requests) {
+                    ratingRepository.deleteAll(ratingRepository.findByRequestId(request.getId()));
+                    reportRepository.deleteAll(reportRepository.findByRequestId(request.getId()));
                     helpOfferRepository.deleteAll(helpOfferRepository.findByRequestId(request.getId()));
                 }
                 helpRequestRepository.deleteAll(requests);
@@ -151,5 +163,30 @@ public abstract class AbstractApiTest {
                         + "\"subjectId\":" + subjectId + ",\"level\":\"" + level + "\"}");
         assertThat(response.statusCode()).isEqualTo(201);
         return firstId(response.body());
+    }
+
+    /** Fait proposer son aide à un étudiant et renvoie l'identifiant de la proposition. */
+    protected Long createOffer(String helperToken, Long requestId) throws Exception {
+        HttpResponse<String> response = send("POST", "/api/requests/" + requestId + "/offers", helperToken,
+                "{\"message\":\"Je peux aider volontiers\"}");
+        assertThat(response.statusCode()).isEqualTo(201);
+        return firstId(response.body());
+    }
+
+    /** Publie une demande, fait accepter l'aide de {@code helperToken} et renvoie l'identifiant de la demande. */
+    protected Long acceptedRequest(String authorToken, String helperToken) throws Exception {
+        Long requestId = createRequest(authorToken, newMarker(), subjectIds(authorToken).get(0), "L2");
+        Long offerId = createOffer(helperToken, requestId);
+        assertThat(send("POST", "/api/offers/" + offerId + "/accept", authorToken, null).statusCode())
+                .isEqualTo(200);
+        return requestId;
+    }
+
+    /** Comme {@link #acceptedRequest}, puis clôture la séance. */
+    protected Long completedRequest(String authorToken, String helperToken) throws Exception {
+        Long requestId = acceptedRequest(authorToken, helperToken);
+        assertThat(send("POST", "/api/requests/" + requestId + "/complete", authorToken, null).statusCode())
+                .isEqualTo(200);
+        return requestId;
     }
 }

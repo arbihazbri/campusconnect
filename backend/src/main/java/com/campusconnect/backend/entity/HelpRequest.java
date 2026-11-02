@@ -46,6 +46,9 @@ public class HelpRequest {
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
+    /** Date de clôture de la séance (renseignée quand la demande passe à TERMINEE). */
+    private Instant completedAt;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
@@ -115,6 +118,14 @@ public class HelpRequest {
         return createdAt;
     }
 
+    public Instant getCompletedAt() {
+        return completedAt;
+    }
+
+    public void setCompletedAt(Instant completedAt) {
+        this.completedAt = completedAt;
+    }
+
     public User getAuthor() {
         return author;
     }
@@ -130,4 +141,4 @@ public class HelpRequest {
     public void setSubject(Subject subject) {
         this.subject = subject;
     }
-}
+}

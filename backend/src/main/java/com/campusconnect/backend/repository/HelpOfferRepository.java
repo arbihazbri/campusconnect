@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.campusconnect.backend.entity.HelpOffer;
+import com.campusconnect.backend.entity.OfferStatus;
 
 public interface HelpOfferRepository extends JpaRepository<HelpOffer, Long> {
 
@@ -27,4 +28,42 @@ public interface HelpOfferRepository extends JpaRepository<HelpOffer, Long> {
      */
     @Query("select o.request.id from HelpOffer o where o.id = :offerId")
     Optional<Long> findRequestIdById(@Param("offerId") Long offerId);
+
+    /** Proposition acceptée d'une demande (au plus une), avec l'aidant. */
+    @EntityGraph(attributePaths = { "helper" })
+    Optional<HelpOffer> findFirstByRequestIdAndStatus(Long requestId, OfferStatus status);
+
+    /** Propositions faites par l'utilisateur, les plus récentes d'abord, avec la demande et son auteur. */
+    @EntityGraph(attributePaths = { "request", "request.author", "request.subject" })
+    @Query("""
+            select o from HelpOffer o
+            where o.helper.id = :helperId and o.request.hidden = false
+            order by o.createdAt desc, o.id desc
+            """)
+    List<HelpOffer> findVisibleByHelperId(@Param("helperId") Long helperId);
+
+    /**
+     * Séances réalisées par l'utilisateur : demandes terminées où il est l'auteur
+     * ou l'aidant dont la proposition a été acceptée.
+     */
+    @EntityGraph(attributePaths = { "helper", "request", "request.author", "request.subject" })
+    @Query("""
+            select o from HelpOffer o
+            where o.status = com.campusconnect.backend.entity.OfferStatus.ACCEPTEE
+              and o.request.status = com.campusconnect.backend.entity.RequestStatus.TERMINEE
+              and o.request.hidden = false
+              and (o.request.author.id = :userId or o.helper.id = :userId)
+            order by o.request.completedAt desc, o.request.id desc
+            """)
+    List<HelpOffer> findCompletedSessionsOf(@Param("userId") Long userId);
+
+    /** Nombre de propositions par demande, pour les demandes d'un auteur : [requestId, total, enAttente]. */
+    @Query("""
+            select o.request.id, count(o),
+                   sum(case when o.status = com.campusconnect.backend.entity.OfferStatus.EN_ATTENTE then 1 else 0 end)
+            from HelpOffer o
+            where o.request.author.id = :authorId
+            group by o.request.id
+            """)
+    List<Object[]> countOffersByRequestForAuthor(@Param("authorId") Long authorId);
 }

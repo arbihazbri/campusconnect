@@ -14,6 +14,7 @@ public record HelpRequestResponse(
         Level level,
         RequestStatus status,
         Instant createdAt,
+        Instant completedAt,
         SubjectResponse subject,
         AuthorSummary author,
         boolean ownedByCurrentUser) {
@@ -31,8 +32,9 @@ public record HelpRequestResponse(
                 request.getLevel(),
                 request.getStatus(),
                 request.getCreatedAt(),
+                request.getCompletedAt(),
                 SubjectResponse.from(request.getSubject()),
                 new AuthorSummary(authorId, request.getAuthor().getFullName()),
                 authorId.equals(currentUserId));
     }
-}
+}
