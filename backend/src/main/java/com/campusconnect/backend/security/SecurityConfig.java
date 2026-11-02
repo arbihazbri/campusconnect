@@ -36,6 +36,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/requests").hasRole("STUDENT")
                         .requestMatchers(HttpMethod.POST, "/api/requests/*/offers").hasRole("STUDENT")
+                        .requestMatchers(HttpMethod.POST, "/api/requests/*/reports").hasRole("STUDENT")
+                        .requestMatchers("/api/dashboard").hasRole("STUDENT")
                         .anyRequest().authenticated())
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint(ENTRY_POINT)
@@ -67,4 +69,4 @@ public class SecurityConfig {
                 + "\",\"message\":\"" + message
                 + "\",\"fieldErrors\":{}}");
     }
-}
+}
