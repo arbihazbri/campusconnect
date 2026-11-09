@@ -28,7 +28,6 @@ Projet universitaire — TEK-UP, Génie Logiciel.
 9. [Structure du dépôt](#9-structure-du-dépôt)
 10. [Dépannage](#10-dépannage)
 11. [Limites connues](#11-limites-connues)
-12. [Utilisation d'outils d'IA](#12-utilisation-doutils-dia)
 
 ---
 
