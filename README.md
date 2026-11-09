@@ -329,12 +329,3 @@ campusconnect/
 - L'application n'est pas encore déployée en ligne : elle se lance en local (section 4).
 - La réputation compte toutes les notes reçues (en tant qu'auteur comme en tant qu'aidant).
 
----
-
-## 12. Utilisation d'outils d'IA
-
-Conformément au cahier des charges, nous déclarons l'utilisation d'un assistant d'IA (Claude, Anthropic)
-pendant le projet, comme aide à la programmation : génération et relecture de code (frontend Next.js et
-compléments backend), rédaction de tests, de la documentation et de ce README.
-Le code produit a été relu, exécuté et testé par l'équipe (tests automatisés et scénario de test manuel),
-et chaque membre est en mesure de l'expliquer et de le modifier.
