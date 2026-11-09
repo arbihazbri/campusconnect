@@ -1,6 +1,8 @@
 package com.campusconnect.backend.service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -8,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.campusconnect.backend.dto.OfferInput;
 import com.campusconnect.backend.dto.OfferResponse;
+import com.campusconnect.backend.dto.Reputation;
 import com.campusconnect.backend.entity.HelpOffer;
 import com.campusconnect.backend.entity.HelpRequest;
 import com.campusconnect.backend.entity.OfferStatus;
@@ -26,14 +29,17 @@ public class OfferService {
     private final HelpOfferRepository helpOfferRepository;
     private final HelpRequestRepository helpRequestRepository;
     private final UserRepository userRepository;
+    private final ReputationService reputationService;
 
     public OfferService(
             HelpOfferRepository helpOfferRepository,
             HelpRequestRepository helpRequestRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            ReputationService reputationService) {
         this.helpOfferRepository = helpOfferRepository;
         this.helpRequestRepository = helpRequestRepository;
         this.userRepository = userRepository;
+        this.reputationService = reputationService;
     }
 
     @Transactional
@@ -81,8 +87,11 @@ public class OfferService {
             throw new ForbiddenOperationException("Seul l'auteur peut consulter les propositions");
         }
 
-        return helpOfferRepository.findByRequestIdOrderByCreatedAtAscIdAsc(requestId).stream()
-                .map(OfferResponse::from)
+        List<HelpOffer> offers = helpOfferRepository.findByRequestIdOrderByCreatedAtAscIdAsc(requestId);
+        Map<Long, Reputation> reputations = reputationService.of(
+                offers.stream().map(offer -> offer.getHelper().getId()).collect(Collectors.toSet()));
+        return offers.stream()
+                .map(offer -> OfferResponse.from(offer, reputations.get(offer.getHelper().getId())))
                 .toList();
     }
 
@@ -149,4 +158,4 @@ public class OfferService {
         }
         return offer;
     }
-}
+}

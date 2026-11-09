@@ -1,5 +1,6 @@
 package com.campusconnect.backend.repository;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -27,4 +28,12 @@ public interface RatingRepository extends JpaRepository<Rating, Long> {
     /** Évaluations reçues par l'utilisateur, avec la demande associée. */
     @EntityGraph(attributePaths = { "request" })
     List<Rating> findByRatedId(Long ratedId);
+
+    /** [identifiant évalué, moyenne, nombre] pour chaque étudiant de la liste ayant reçu au moins une note. */
+    @Query("""
+            select r.rated.id, avg(r.score), count(r) from Rating r
+            where r.rated.id in :userIds
+            group by r.rated.id
+            """)
+    List<Object[]> ratingStatsByRated(@Param("userIds") Collection<Long> userIds);
 }

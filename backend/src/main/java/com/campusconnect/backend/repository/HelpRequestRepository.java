@@ -1,7 +1,10 @@
 package com.campusconnect.backend.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+
+import jakarta.persistence.LockModeType;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,8 +17,6 @@ import org.springframework.data.repository.query.Param;
 import com.campusconnect.backend.entity.HelpRequest;
 import com.campusconnect.backend.entity.Level;
 import com.campusconnect.backend.entity.RequestStatus;
-
-import jakarta.persistence.LockModeType;
 
 public interface HelpRequestRepository extends JpaRepository<HelpRequest, Long> {
 
@@ -48,4 +49,24 @@ public interface HelpRequestRepository extends JpaRepository<HelpRequest, Long> 
             @Param("level") Level level,
             @Param("status") RequestStatus status,
             Pageable pageable);
-}
+
+    /**
+     * Fonctionnalité originale : demandes ouvertes dans les compétences de l'étudiant, hors les siennes
+     * et celles où il a déjà proposé son aide. Même niveau d'abord, puis les plus récentes.
+     */
+    @EntityGraph(attributePaths = { "author", "subject" })
+    @Query("""
+            select r from HelpRequest r
+            where r.hidden = false
+              and r.status = com.campusconnect.backend.entity.RequestStatus.OUVERTE
+              and r.author.id <> :userId
+              and r.subject.id in :subjectIds
+              and not exists (select o.id from HelpOffer o where o.request = r and o.helper.id = :userId)
+            order by case when r.level = :level then 0 else 1 end, r.createdAt desc, r.id desc
+            """)
+    List<HelpRequest> findRecommendations(
+            @Param("userId") Long userId,
+            @Param("subjectIds") Collection<Long> subjectIds,
+            @Param("level") Level level,
+            Pageable pageable);
+}

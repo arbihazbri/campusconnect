@@ -59,7 +59,7 @@ public abstract class AbstractApiTest {
     protected PasswordEncoder passwordEncoder;
 
     private final HttpClient client = HttpClient.newHttpClient();
-    private final List<String> createdEmails = new ArrayList<>();
+    protected final List<String> createdEmails = new ArrayList<>();
 
     @AfterEach
     void cleanUpCreatedData() {

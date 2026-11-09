@@ -5,7 +5,7 @@ import { useState } from "react";
 import { checkmarkOutline, closeOutline, handRightOutline, mailOpenOutline } from "ionicons/icons";
 
 import Avatar from "@/components/Avatar";
-import { OfferStatusBadge } from "@/components/Badges";
+import { OfferStatusBadge, ReputationBadgeView, ReputationSummary } from "@/components/Badges";
 import Icon from "@/components/Icon";
 import { Alert, EmptyState, ErrorState, Loading } from "@/components/States";
 import { useApiData } from "@/components/useApiData";
@@ -77,8 +77,10 @@ export default function OffersPanel({
                 <div>
                   <div className="row">
                     <strong>{offer.helper.fullName}</strong>
+                    {offer.helperReputation ? <ReputationBadgeView badge={offer.helperReputation.badge} /> : null}
                     <OfferStatusBadge status={offer.status} />
                   </div>
+                  {offer.helperReputation ? <ReputationSummary reputation={offer.helperReputation} /> : null}
                   <p className="pre-line" style={{ margin: "6px 0" }}>
                     {offer.message}
                   </p>

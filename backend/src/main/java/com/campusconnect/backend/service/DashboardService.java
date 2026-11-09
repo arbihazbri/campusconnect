@@ -10,12 +10,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.campusconnect.backend.dto.AuthorSummary;
-import com.campusconnect.backend.dto.DashboardResponse;
 import com.campusconnect.backend.dto.DashboardResponse.MyOffer;
 import com.campusconnect.backend.dto.DashboardResponse.MyRequest;
 import com.campusconnect.backend.dto.DashboardResponse.Session;
 import com.campusconnect.backend.dto.DashboardResponse.SessionRole;
 import com.campusconnect.backend.dto.DashboardResponse.Stats;
+import com.campusconnect.backend.dto.DashboardResponse;
 import com.campusconnect.backend.dto.SubjectResponse;
 import com.campusconnect.backend.entity.HelpOffer;
 import com.campusconnect.backend.entity.HelpRequest;
@@ -33,14 +33,17 @@ public class DashboardService {
     private final HelpRequestRepository helpRequestRepository;
     private final HelpOfferRepository helpOfferRepository;
     private final RatingRepository ratingRepository;
+    private final ReputationService reputationService;
 
     public DashboardService(
             HelpRequestRepository helpRequestRepository,
             HelpOfferRepository helpOfferRepository,
-            RatingRepository ratingRepository) {
+            RatingRepository ratingRepository,
+            ReputationService reputationService) {
         this.helpRequestRepository = helpRequestRepository;
         this.helpOfferRepository = helpOfferRepository;
         this.ratingRepository = ratingRepository;
+        this.reputationService = reputationService;
     }
 
     @Transactional(readOnly = true)
@@ -63,7 +66,7 @@ public class DashboardService {
                 received.size(),
                 average);
 
-        return new DashboardResponse(stats, myRequests, myOffers, sessions);
+        return new DashboardResponse(stats, myRequests, myOffers, sessions, reputationService.of(userId));
     }
 
     private List<MyRequest> myRequests(Long userId) {

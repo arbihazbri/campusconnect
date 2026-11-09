@@ -1,5 +1,6 @@
 package com.campusconnect.backend.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -66,4 +67,14 @@ public interface HelpOfferRepository extends JpaRepository<HelpOffer, Long> {
             group by o.request.id
             """)
     List<Object[]> countOffersByRequestForAuthor(@Param("authorId") Long authorId);
+
+    /** [identifiant aidant, nombre de séances terminées où sa proposition a été acceptée]. */
+    @Query("""
+            select o.helper.id, count(o) from HelpOffer o
+            where o.helper.id in :userIds
+              and o.status = com.campusconnect.backend.entity.OfferStatus.ACCEPTEE
+              and o.request.status = com.campusconnect.backend.entity.RequestStatus.TERMINEE
+            group by o.helper.id
+            """)
+    List<Object[]> countHelpedSessionsByHelper(@Param("userIds") Collection<Long> userIds);
 }

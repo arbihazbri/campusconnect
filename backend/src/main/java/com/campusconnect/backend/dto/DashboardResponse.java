@@ -14,7 +14,8 @@ public record DashboardResponse(
         Stats stats,
         List<MyRequest> myRequests,
         List<MyOffer> myOffers,
-        List<Session> sessions) {
+        List<Session> sessions,
+        Reputation reputation) {
 
     public record Stats(
             long publishedRequests,

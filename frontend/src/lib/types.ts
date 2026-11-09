@@ -51,6 +51,21 @@ export type Page<T> = {
   totalPages: number;
 };
 
+/** Fonctionnalité originale : reconnaissance des contributions. */
+export type ReputationBadge = "NOUVEAU" | "CONTRIBUTEUR" | "MENTOR";
+
+export type Reputation = {
+  averageRating: number | null;
+  ratingsCount: number;
+  sessionsHelped: number;
+  badge: ReputationBadge;
+};
+
+export type Recommendations = {
+  hasSkills: boolean;
+  items: { request: HelpRequest; sameLevel: boolean }[];
+};
+
 export type Offer = {
   id: number;
   requestId: number;
@@ -58,6 +73,7 @@ export type Offer = {
   status: OfferStatus;
   createdAt: string;
   helper: Person;
+  helperReputation: Reputation | null;
 };
 
 export type Rating = {
@@ -137,4 +153,5 @@ export type Dashboard = {
     partner: Person;
     ratedByMe: boolean;
   }[];
+  reputation: Reputation;
 };

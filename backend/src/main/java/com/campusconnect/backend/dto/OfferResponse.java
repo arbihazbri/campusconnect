@@ -11,18 +11,25 @@ public record OfferResponse(
         String message,
         OfferStatus status,
         Instant createdAt,
-        AuthorSummary helper) {
+        AuthorSummary helper,
+        Reputation helperReputation) {
 
     /**
      * À appeler pendant une transaction : l'aidant et la demande sont chargés à la demande.
      */
     public static OfferResponse from(HelpOffer offer) {
+        return from(offer, null);
+    }
+
+    /** Variante avec la réputation de l'aidant, affichée à l'auteur pour l'aider à choisir. */
+    public static OfferResponse from(HelpOffer offer, Reputation helperReputation) {
         return new OfferResponse(
                 offer.getId(),
                 offer.getRequest().getId(),
                 offer.getMessage(),
                 offer.getStatus(),
                 offer.getCreatedAt(),
-                new AuthorSummary(offer.getHelper().getId(), offer.getHelper().getFullName()));
+                new AuthorSummary(offer.getHelper().getId(), offer.getHelper().getFullName()),
+                helperReputation);
     }
-}
+}

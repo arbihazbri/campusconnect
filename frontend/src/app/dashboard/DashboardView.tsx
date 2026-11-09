@@ -9,7 +9,9 @@ import {
   handRightOutline,
   mailUnreadOutline,
   peopleOutline,
+  personCircleOutline,
   searchOutline,
+  sparklesOutline,
   star,
   starOutline,
 } from "ionicons/icons";
@@ -17,13 +19,19 @@ import Link from "next/link";
 
 import { useAuth } from "@/components/AuthProvider";
 import Avatar from "@/components/Avatar";
-import { OfferStatusBadge, RequestStatusBadge } from "@/components/Badges";
+import {
+  OfferStatusBadge,
+  REPUTATION_HINT,
+  ReputationBadgeView,
+  ReputationSummary,
+  RequestStatusBadge,
+} from "@/components/Badges";
 import Icon from "@/components/Icon";
 import { EmptyState, ErrorState, SkeletonList } from "@/components/States";
 import { useApiData } from "@/components/useApiData";
 import { formatDate } from "@/lib/format";
 import { subjectIcon } from "@/lib/icons";
-import type { Dashboard } from "@/lib/types";
+import type { Dashboard, Recommendations } from "@/lib/types";
 
 export default function DashboardView() {
   const { user } = useAuth();
@@ -90,6 +98,21 @@ function Content({ data }: { data: Dashboard }) {
           detail={`${stats.ratingsReceived} évaluation(s)`}
         />
       </section>
+
+      <section className="card fade-in reputation-card" aria-labelledby="my-reputation">
+        <div className="card-head">
+          <h2 id="my-reputation">
+            <Icon icon={star} size={20} />
+            Ma réputation d&apos;aidant
+          </h2>
+          <ReputationBadgeView badge={data.reputation.badge} />
+        </div>
+        <p className="muted" style={{ margin: 0 }}>
+          {REPUTATION_HINT[data.reputation.badge]}. <ReputationSummary reputation={data.reputation} />
+        </p>
+      </section>
+
+      <RecommendationsSection />
 
       <section className="card fade-in" aria-labelledby="my-requests">
         <div className="card-head">
@@ -272,5 +295,80 @@ function Stat({
         {detail ? <div className="stat-detail">{detail}</div> : null}
       </div>
     </div>
+  );
+}
+
+/**
+ * Fonctionnalité originale : demandes ouvertes qui correspondent aux compétences du profil,
+ * celles du même niveau en premier. Une demande disparaît dès qu'on y a proposé son aide.
+ */
+function RecommendationsSection() {
+  const recommendations = useApiData<Recommendations>("/api/recommendations?limit=6");
+
+  return (
+    <section className="card fade-in" aria-labelledby="recommended">
+      <div className="card-head">
+        <h2 id="recommended">
+          <Icon icon={sparklesOutline} size={20} />
+          Recommandées pour vous
+        </h2>
+        {recommendations.data ? <span className="count">{recommendations.data.items.length}</span> : null}
+      </div>
+      {recommendations.loading && !recommendations.data ? (
+        <SkeletonList count={2} />
+      ) : recommendations.error || !recommendations.data ? (
+        <ErrorState message={recommendations.error ?? "Chargement impossible"} onRetry={recommendations.reload} />
+      ) : !recommendations.data.hasSkills ? (
+        <EmptyState
+          icon={personCircleOutline}
+          title="Ajoutez vos compétences pour recevoir des recommandations"
+          text="Nous vous proposerons les demandes ouvertes dans les matières que vous maîtrisez."
+          action={{ href: "/profile", label: "Compléter mon profil", icon: personCircleOutline }}
+        />
+      ) : recommendations.data.items.length === 0 ? (
+        <EmptyState
+          icon={sparklesOutline}
+          title="Aucune demande ouverte dans vos compétences pour le moment"
+          text="Revenez plus tard ou parcourez toutes les demandes."
+          action={{ href: "/requests", label: "Parcourir les demandes", icon: searchOutline }}
+        />
+      ) : (
+        <ul>
+          {recommendations.data.items.map(({ request, sameLevel }) => (
+            <li key={request.id} className="list-item">
+              <div className="list-main">
+                <span className="icon-tile icon-tile-sm">
+                  <Icon icon={subjectIcon(request.subject.name)} size={19} />
+                </span>
+                <div>
+                  <Link href={`/requests/${request.id}`} className="card-title">
+                    {request.title}
+                  </Link>
+                  <div className="meta" style={{ marginTop: 4 }}>
+                    <span>{request.subject.name}</span>
+                    <span>{request.level}</span>
+                    <span className="meta-item">
+                      <Icon icon={peopleOutline} size={14} />
+                      {request.author.fullName}
+                    </span>
+                    <span className="meta-item">
+                      <Icon icon={calendarOutline} size={14} />
+                      {formatDate(request.createdAt)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="row">
+                {sameLevel ? <span className="badge badge-success">Votre niveau</span> : null}
+                <Link href={`/requests/${request.id}`} className="btn btn-sm btn-primary">
+                  <Icon icon={handRightOutline} size={16} />
+                  Proposer mon aide
+                </Link>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
