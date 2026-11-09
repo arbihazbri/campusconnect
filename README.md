@@ -56,6 +56,7 @@ ne la voient pas, et l'auteur n'a aucun repère pour choisir entre plusieurs pro
   et le nombre d'aides qu'il a menées jusqu'à la clôture, avec un **badge** :
   *Nouveau* (aucune aide terminée), *Contributeur* (au moins une), *Mentor* (au moins 5 aides terminées
   et une note moyenne de 4/5 ou plus). L'étudiant voit aussi sa propre réputation dans son tableau de bord.
+  
 
 **Administrateur**
 - Espace de modération : publications signalées, motifs, masquage / restauration d'une publication,
@@ -68,6 +69,7 @@ ne la voient pas, et l'auteur n'a aucun repère pour choisir entre plusieurs pro
 ---
 
 ## 2. Architecture
+
 
 ```
 Navigateur ──► Next.js (port 3000)
